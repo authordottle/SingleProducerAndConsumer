@@ -1,13 +1,11 @@
 /********* consumer.c ***********/
 #include "headers.h"
-#include <sys/types.h>
-#include <sys/wait.h>
 
 int main()
 {
 	const char *name = "OS";
-    int shm_fd;
-    shared_struct *ptr;
+    	int shm_fd;		
+    	shared_struct *ptr;
 	int size, i;
 	FILE * pFile = fopen ("output.txt","w");
 	if (pFile == NULL) {
@@ -25,25 +23,24 @@ int main()
 	/* the size of the shared memory segment */
 	size = sizeof(shared_struct);
 
-    /* map the shared memory segment to the address space of the process */
-    ptr = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    if (ptr == MAP_FAILED) {
-        printf("Map failed\n");
-        exit(-1);
-    }
-    /* Read data and write to file output.txt */
-while (1){
-	while(ptr->in == ptr->out){
-	}
-	fprintf(pFile, "%s", ptr->buffer[ptr->out].data);
-	ptr->out = (ptr->out + 1) % BUFFER_SIZE;
+    	/* map the shared memory segment to the address space of the process */
+    	ptr = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    	if (ptr == MAP_FAILED) {
+        	printf("Map failed\n");
+        	exit(-1);
+    	}
 
-	if(ptr->buffer[ptr->out].id == -1){
-		break;
-	}
-		
-	
-}
+    	/* Read data */
+    	while (1) {
+        	/* buffer is empty */
+        	while (ptr->in == ptr->out);
+        	/* get an item from buffer */
+        	item elem = ptr->buffer[ptr->out];
+			printf("%d\t%s", elem.id, elem.data);
+			if (elem.id == -1) break;
+				fprintf(pFile, "%s", elem.data);
+        	ptr->out = (ptr->out + 1) % BUFFER_SIZE;
+    	}
 	fclose(pFile);
 	shm_unlink(name);
 }

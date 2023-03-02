@@ -1,15 +1,12 @@
 /******* producer.c *******/
 #include "headers.h"
-#include <sys/types.h>
-#include <sys/wait.h>
 
 int main()
 {
-        const char *name = "OS";
+	const char *name = "OS";
 	int shm_fd;
 	shared_struct *ptr;
 	pid_t  pid;
-	char *args[5];
 
 	/* fork another process */
 	pid = fork();
@@ -17,11 +14,9 @@ int main()
 		printf("Fork Failed\n");
 		exit(-1);
 	}
-	else if (pid == 0 ) {
-        /* child process */
+	else if (pid == 0) { /* child process */
 		sleep(1);
-        /* execute consumer */
-		execvp("./consumer", args);
+		execlp("./consumer", "consumer", NULL);
 	}
 	else { /* parent process */
 		
@@ -33,31 +28,31 @@ int main()
 			printf("fopen failed\n");
 			exit(-1);
 		}
-	
+
 		/* create the shared memory segment */
-        shm_fd = shm_open(name, O_CREAT|O_RDWR, 0666);
-        if (shm_fd == -1) {
-            printf("Shared memory failed\n");
-            exit(-1);
-        }
+    		shm_fd = shm_open(name, O_CREAT|O_RDWR, 0666);
+    		if (shm_fd == -1) {
+        		printf("Shared memory failed\n");
+        		exit(-1);
+    		}
 
-        /* configure the size of the shared memory segment */
-        size = sizeof(shared_struct);
-        ftruncate(shm_fd, size);
+    		/* configure the size of the shared memory segment */
+    		size = sizeof(shared_struct);
+    		ftruncate(shm_fd, size);
 
-        /* now map the shared memory segment in the address space of the process */
-        ptr = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, shm_fd, 0);
-        if (ptr == MAP_FAILED) {
-            printf("Map failed\n");
-            exit(-1);
-        }
+    		/* now map the shared memory segment in the address space of the process */
+    		ptr = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    		if (ptr == MAP_FAILED) {
+        		printf("Map failed\n");
+        		exit(-1);
+    		}
 
-        /* initialize in and out */
-        ptr->in = 0;
-        ptr->out = 0;
+    		/* initialize in and out */
+    		ptr->in = 0;
+    		ptr->out = 0;
 
-        /* write data */
-        while (1) {
+    		/* write data */
+    		while (1) {
 			item elem;
 			elem.id = id++;
 			/* Read each line from the input file */
@@ -66,24 +61,16 @@ int main()
 				elem.data[0] = 0;
 				end = 1;
 			}
-            		/* Write elem to the bounded buffer */
-				while ((ptr->in + 1) % BUFFER_SIZE == ptr->out){
-					//wait
-				}	
-				printf("%s", elem.data);
-				ptr->buffer[ptr->in] = elem;
-				ptr->in = (ptr->in + 1) % BUFFER_SIZE;
-											
+			
+        		/* buffer is full */
+        		while (((ptr->in + 1) % BUFFER_SIZE) == ptr->out);
+        		
+			/* put an item in buffer */
+        		ptr->buffer[ptr->in] = elem;
+        		ptr->in = (ptr->in + 1) % BUFFER_SIZE;
+
 			/* if there is no more data to be read from the file */
-			if (end){
-				while ((ptr->in + 1) % BUFFER_SIZE == ptr->out){
-					//wait
-				}	
-				ptr->buffer[ptr->in] = elem;
-				break;
-			} 
-        }
-        fclose(pFile);
+			if (end) break;
+    		}
 	}
-wait(NULL);
 }
