@@ -16,8 +16,8 @@ typedef struct {
 } item;
 
 typedef struct {
-    int in;                                // shared variable in
-    int out;                               // shared variable out
-    item buffer[BUFFER_SIZE];              // bounded buffer with size BUFFER_SIZE
+	int in;                                // shared variable in
+	int out;                               // shared variable out
+	item buffer[BUFFER_SIZE];              // bounded buffer with size BUFFER_SIZE
 } shared_struct;
 
